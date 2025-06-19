@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To-Do List (Add)</title>
+    <title>To-Do List (Removal)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,7 +16,7 @@
         #todoList th, #todoList td {
             border: 1px solid #ddd;
             padding: 8px;
-            text-align: left;
+            text-align: center;
         }
         #todoList th {
             background-color: #f0f0f0;
@@ -25,33 +25,34 @@
             width: 10%;
         }
         #todoList th:nth-child(2) {
-            width: 90%;
+            width: 80%;
         }
-        .add-form {
-            margin-top: 20px;
-            width: 70%;
-            margin: 20px auto;
-            display: flex;
+        #todoList th:last-child {
+            width: 10%;
         }
-        .add-form input[type="text"] {
-            padding: 8px;
-            flex-grow: 1;
-            margin-right: 10px;
+        .delete-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
         }
-        .add-form button {
-            padding: 8px 15px;
+        .delete-btn:hover {
+            background-color: #cc0000;
         }
     </style>
 </head>
 <body>
 
-<h2 style="text-align: center;">To-Do List (Add Function)</h2>
+<h2 style="text-align: center;">To-Do List (Removal)</h2>
 
 <table id="todoList">
     <thead>
         <tr>
-            <th>Number</th>
+            <th>№</th>
             <th>Text</th>
+            <th>Action</th>
         </tr>
     </thead>
     <tbody id="listBody">
@@ -59,35 +60,22 @@
     </tbody>
 </table>
 
-<div class="add-form">
-    <input type="text" id="newItem" placeholder="Enter new item">
-    <button onclick="addItem()">Add</button>
-</div>
-
 <script>
-    async function addItem() {
-        const newItemInput = document.getElementById('newItem');
-        const newItemText = newItemInput.value.trim();
-
-        if (newItemText) {
+    async function deleteItem(id) {
+        if (confirm('Вы уверены, что хотите удалить эту задачу?')) {
             try {
-                const response = await fetch('/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: newItemText })
+                const response = await fetch(`/delete/${id}`, {
+                    method: 'DELETE'
                 });
 
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    console.error('Failed to add item');
+                    console.error('Ошибка при удалении');
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Ошибка:', error);
             }
-            newItemInput.value = '';
         }
     }
 </script>
