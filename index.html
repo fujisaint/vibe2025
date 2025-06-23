@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=2.0">
+  <title>Список задач</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 300px;
+      background-color: #ffffff00; 
+      color: black;
+    }
+    
+    h2 {
+      color: #333;
+      margin-top: 0;
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .input-group {
+      margin-bottom: 15px;
+    }
+    
+    input {
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      width: calc(100% - 26px);
+      box-sizing: content-box;
+      font-size: 16px;
+    }
+    
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    button {
+      padding: 12px 20px;
+      background-color: #212121d8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      width: 48%;
+    }
+    
+    button:hover {
+      background-color: #212121d8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    table {
+      table-layout: fixed;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #f3f3f3;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    th:nth-child(1) { width: 5%; }
+    th:nth-child(2) { width: 55%; }
+    th:nth-child(3) { width: 25%; }
+    
+    th, td {
+      border: 1px solid #6665658f;
+      padding: 14px;
+      text-align: center;
+      color: #000000;
+    }
+    
+    th {
+      background-color: #C0C0C0;
+      font-weight: bold;
+    }
+    
+    .error {
+      color: red;
+      display: none;
+      margin-top: 5px;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .logout-btn {
+      background-color: #212121d8;
+      width: auto;
+      margin-bottom: 15px;
+      position: absolute;
+      top: 100px;
+      right: 100px;
+    }
+
+    .edit-btn {
+      width: 70px;
+      margin-right: 5px;
+      align-items: center;
+      justify-content: center;
+      display: inline-flex;
+      height: 30px;
+    }
+
+    .delete-btn {
+      width: 70px;
+      align-items: center;
+      justify-content: center;
+      display: inline-flex;
+      height: 30px;
+    }
+    
+    .task-input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .task-input-group button {
+      margin-top: 8px;
+      height: 44px;
+    }
+    
+    #taskInput {
+      flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container" id="authContainer">
+    <h2>Вход</h2>
+    <div class="input-group">
+      <input type="text" id="username" placeholder="Логин">
+      <input type="password" id="password" placeholder="Пароль">
+    </div>
+    <div class="button-group">
+      <button onclick="login()">войти</button>
+      <button onclick="register()">зарегистрироваться</button>
+    </div>
+    <p id="authError" class="error"></p>
+  </div>
+  
+  <div class="todo-container" id="todoContainer" style="display: none;">
+    <h2>To-Do List</h2>
+    <button class="logout-btn" onclick="logout()">выйти</button>
+    <div class="task-input-group">
+      <input type="text" id="taskInput" placeholder="Новая задача">
+      <button onclick="addTask()">add</button>
+    </div>
+    <p id="taskError" class="error"></p>
+    <table id="taskTable">
+      <tr>
+        <th>№</th>
+        <th>Text</th>
+        <th>Action</th>
+      </tr>
+      {{rows}}
+    </table>
+  </div>
+
+  <script>
+    async function showError(elementId, message) {
+      const errorElement = document.getElementById(elementId);
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+      setTimeout(() => { errorElement.style.display = 'none'; }, 3000);
+    }
+
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (!username || !password) {
+        showError('authError', 'Логин и пароль не могут быть пустыми');
+        return;
+      }
+
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          document.getElementById('authContainer').style.display = 'none';
+          document.getElementById('todoContainer').style.display = 'block';
+          await loadTasks();
+        } else {
+          showError('authError', data.error || 'Ошибка входа');
+        }
+      } catch {
+        showError('authError', 'Ошибка сервера');
+      }
+    }
+
+    async function register() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (!username || !password) {
+        showError('authError', 'Логин и пароль не могут быть пустыми');
+        return;
+      }
+
+      try {
+        const response = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showError('authError', 'Регистрация успешна, войдите');
+        } else {
+          showError('authError', data.error || 'Ошибка регистрации');
+        }
+      } catch {
+        showError('authError', 'Ошибка сервера');
+      }
+    }
+
+    async function logout() {
+      try {
+        await fetch('/logout');
+        document.getElementById('todoContainer').style.display = 'none';
+        document.getElementById('authContainer').style.display = 'block';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+      } catch {
+        showError('taskError', 'Ошибка выхода');
+      }
+    }
+
+    async function loadTasks() {
+      try {
+        const response = await fetch('/');
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newTableRows = doc.querySelector('#taskTable').innerHTML;
+        document.querySelector('#taskTable').innerHTML = newTableRows;
+        attachEventListeners(); // << ВАЖНО: обновляем обработчики после загрузки
+      } catch {
+        showError('taskError', 'Ошибка загрузки задач');
+      }
+    }
+
+    async function addTask() {
+      const text = document.getElementById('taskInput').value.trim();
+
+      if (!text) {
+        showError('taskError', 'Введите текст задачи');
+        return;
+      }
+
+      try {
+        const response = await fetch('/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          document.getElementById('taskInput').value = '';
+          await loadTasks(); // Перезагружаем таблицу с новыми данными и событиями
+        } else {
+          showError('taskError', data.error || 'Ошибка добавления');
+        }
+      } catch {
+        showError('taskError', 'Ошибка сервера');
+      }
+    }
+
+    async function deleteTask(id) {
+      try {
+        const response = await fetch(`/delete?id=${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (response.ok) {
+          await loadTasks();
+        } else {
+          showError('taskError', data.error || 'Ошибка удаления');
+        }
+      } catch {
+        showError('taskError', 'Ошибка сервера');
+      }
+    }
+
+    async function editTask(id, textCell) {
+      const newText = prompt('Введите новый текст задачи:', textCell.textContent);
+      if (newText === null || newText.trim() === '') return;
+
+      try {
+        const response = await fetch(`/update?id=${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: newText.trim() })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          await loadTasks();
+        } else {
+          showError('taskError', data.error || 'Ошибка редактирования');
+        }
+      } catch {
+        showError('taskError', 'Ошибка сервера');
+      }
+    }
+
+    function attachEventListeners() {
+      document.querySelectorAll('.delete-btn').forEach(button => {
+        button.onclick = () => deleteTask(button.dataset.id);
+      });
+
+      document.querySelectorAll('.edit-btn').forEach(button => {
+        button.onclick = () => {
+          const textCell = document.querySelector(`td[data-id="${button.dataset.id}"]`);
+          editTask(button.dataset.id, textCell);
+        };
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      attachEventListeners(); // для подставленных {{rows}}, если сервер их встраивает напрямую
+    });
+  </script>
+</body>
+</html>
